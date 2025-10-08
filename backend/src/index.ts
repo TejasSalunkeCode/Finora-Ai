@@ -9,6 +9,8 @@ import { log } from "console";
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 import { asyncHandler } from "./middlewares/asyncHandler.middlerware.js";
 import connectDatabase from "./config/database.config.js";
+import authRoutes from "./routes/auth.routes.js"; 
+
 
 const app=express();
 const BASE_PATH=Env.BASE_PATH;
@@ -29,6 +31,9 @@ app.get("/",asyncHandler(async (req:Request,res:Response,next:NextFunction)=>{
         message:"Hello World!"
     });
 }));
+
+
+app.use(`${BASE_PATH}/auth`,authRoutes);
 
 
 app.use(errorHandler);

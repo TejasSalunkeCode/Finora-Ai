@@ -10,8 +10,8 @@ export const asyncHandler =
   (controller: AsyncControllerType): AsyncControllerType =>
   async (req, res, next) => {
     try {
-      await controller(req, res, next);
+      return await controller(req, res, next);
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
