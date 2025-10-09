@@ -1,9 +1,9 @@
 import type { Request, Response } from "express";
 import { asyncHandler } from "../middlewares/asyncHandler.middlerware.js";
 import { HTTPSTATUS } from "../config/http.config.js";
-import { registerSchema } from "../validators/auth.validator.js";
+import { loginSchema, registerSchema } from "../validators/auth.validator.js";
 import UserModel from "../models/user.model.js";
-import { registerService } from "../services/auth.service.js";
+import { loginService, registerService } from "../services/auth.service.js";
 
 export const RegisterController = asyncHandler(async (req: Request, res: Response) => {
     // Validate request body
@@ -39,3 +39,19 @@ export const RegisterController = asyncHandler(async (req: Request, res: Respons
         data: userResponse
     });
 });
+
+
+export const loginController = asyncHandler(async(req:Request,res:Response)=>{
+    const body = loginSchema.parse({
+        ...req.body,
+    });
+   const {user,accessToken,expiredAt,reportSetting}= await loginService(body);
+
+    return res.status(HTTPSTATUS.OK).json({
+        message:"User logged in successfully",
+        user,
+        accessToken,
+        expiredAt,
+        reportSetting,
+    });
+})
