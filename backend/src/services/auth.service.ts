@@ -40,29 +40,52 @@ export const registerService = async (body: RegisterSchemaType) => {
   }
 };
 
-export const loginService = async(body:LoginSchemaType)=>{
-const {email,password}=body;;
-const user = await UserModel.findOne({email})
-if(!user) throw new UnauthorizedException("Email/Passwword not found");
+export const loginService = async (body: LoginSchemaType) => {
+    const { email, password } = body;
+    
+    // Find user by email and include the password field
+    const user = await UserModel.findOne({ email }).select('+password');
+    
+    if (!user) {
+        throw new UnauthorizedException("Invalid email or password");
+    }
 
-const isPasswordValid = await user.comparePassword(password);
+    // Compare provided password with hashed password
+    const isPasswordValid = await user.comparePassword(password);
+    
+    if (!isPasswordValid) {
+        throw new UnauthorizedException("Invalid email or password");
+    }
 
-if(!isPasswordValid) 
-  throw new UnauthorizedException("Invalid email/password");
+    // Generate JWT token
+    const { token: accessToken, expiredAt } = signJwtToken({ userId: user._id });
 
-const {token,expiredAt} = signJwtToken({userId:user.id});
+    // Get or create report settings
+    let reportSetting = await ReportSettingModel.findOne({ userId: user._id });
+    
+    if (!reportSetting) {
+        // For new users, set the first report date to the start of next month
+        const now = new Date();
+        const nextReportDate = new Date(now.getFullYear(), now.getMonth() + 1, 1); // First day of next month
+        
+        reportSetting = new ReportSettingModel({
+            userId: user._id,
+            frequency: ReportFrequencyEnum.MONTHLY,
+            isEnabled: true,
+            lastSentDate: null,
+            nextReportDate: nextReportDate
+        });
+        await reportSetting.save();
+    }
 
-const reportSetting=await ReportSettingModel.findOne({
-  userId:user.id,
-},
-{_id:1,frequency:1,isEnabled:1}
-).lean();
-  return{
-    user:user.omitPassword(),
-    accessToken:token,
-    expiredAt,
-    reportSetting,
-  }
-}
-
-
+    return {
+        user: user.omitPassword(),
+        accessToken,
+        expiredAt,
+        reportSetting: {
+            _id: reportSetting._id,
+            frequency: reportSetting.frequency,
+            isEnabled: reportSetting.isEnabled
+        }
+    };
+};
